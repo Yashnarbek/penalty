@@ -754,6 +754,11 @@
         noise(b + 0.6, 0.09, 'highpass', 1800, 0.7, 0.3);
       }
     },
+    thud: function () {
+      tone(85, 0, 0.2, 'sine', 0.45, 42);
+      noise(0, 0.14, 'lowpass', 300, 1, 0.3, 120);
+      noise(0.02, 0.2, 'bandpass', 900, 0.8, 0.07, 400);
+    },
     fanfare: function () {
       [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, i * 0.09, 0.22, 'triangle', 0.16); });
       [523, 659, 784, 1047].forEach(function (f) { tone(f, 0.5, 0.9, 'triangle', 0.1); });
@@ -802,7 +807,8 @@
     shEl.setAttribute('cx', x.toFixed(1)); shEl.setAttribute('cy', gy.toFixed(1));
     shEl.setAttribute('rx', (10 * s).toFixed(1)); shEl.setAttribute('ry', (3 * s).toFixed(1));
   }
-  function setKeeper(x, y, rot) { keeperEl.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + rot.toFixed(1) + ')'); }
+  var kpose = { x: 480, y: 178, rot: 0 };
+  function setKeeper(x, y, rot) { kpose.x = x; kpose.y = y; kpose.rot = rot; keeperEl.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + rot.toFixed(1) + ')'); }
   function setKicker(x, y, s, dy) { kickerEl.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + (y + (dy || 0)).toFixed(1) + ') scale(' + s.toFixed(3) + ')'); }
   function setFace(mode) {
     var m = $('kMouth'), b = $('kBrows');
@@ -1051,11 +1057,27 @@
     }, tk);
   }
 
+  // after the dive the keeper drops to the turf, hits it, bounces a little and lies there
+  function keeperFall(tk) {
+    var x0 = kpose.x, y0 = kpose.y, r0 = kpose.rot, d = r0 < 0 ? -1 : 1;
+    var gy = 205, x1 = Math.max(395, Math.min(565, x0 + d * 24)), r1 = d * 88;
+    run(520, function (p) {
+      setKeeper(lerp(x0, x1, easeOut(p)), lerp(y0, gy, p * p), lerp(r0, r1, easeOut(p)));
+    }, function () {
+      SND.thud();
+      run(380, function (p) {
+        var b = Math.sin(p * Math.PI) * 9 * (1 - p);
+        setKeeper(x1 + d * 4 * p, gy - b, r1 - d * 4 * Math.sin(p * Math.PI * 2));
+      }, function () { setKeeper(x1 + d * 4, gy, r1); }, tk);
+    }, tk);
+  }
+
   function goalFx(tk, x, y, sgn) {
     goals++;
     SND.net(); SND.roar(); wait(350, function () { SND.horn(); }, tk); wait(900, function () { SND.fanfare(); }, tk);
     wait(1500, function () { SND.stomp(); }, tk);
     setFace('sad'); banner('Gol!', 'goal'); confetti();
+    wait(150, function () { keeperFall(tk); }, tk);
     $('netBack').style.transformOrigin = '480px 168px'; $('netBack').style.transformBox = 'view-box';
     run(1100, function (p) {
       var bounce = Math.sin(p * Math.PI * 3) * (1 - p);
@@ -1071,6 +1093,7 @@
     saves++;
     SND.save(); wait(250, function () { SND.stomp(); }, tk);
     setFace('happy'); banner('Qaytardi!', 'save');
+    wait(220, function () { keeperFall(tk); }, tk);
     run(900, function (p) {
       var e = easeOut(p);
       setBall(x + sgn * 110 * e, y + 120 * e - Math.sin(p * Math.PI) * 40, lerp(0.6, 0.8, e), lerp(205, 300, e));
