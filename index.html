@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kasrlar Penaltisi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&display=swap">
+<style>
+  /* Layout: stadium scene and question card on the left, one compact answer keypad on the right */
+  :root {
+    --ground: #0e121a;
+    --panel: #151b27;
+    --panel-2: #1b2334;
+    --line: #2a3447;
+    --ink: #e8ecf3;
+    --ink-2: #98a4b9;
+    --amber: #f2b84b;
+    --amber-deep: #b27f1c;
+    --amber-ink: #1d1405;
+    --good: #3fb68b;
+    --good-bg: rgba(63, 182, 139, 0.14);
+    --bad: #ef6b61;
+    --bad-bg: rgba(239, 107, 97, 0.14);
+    --key-top: #2a3448;
+    --key-bot: #212a3b;
+    --key-edge: #394660;
+    --screen: #090c12;
+    --display: 'Saira Condensed', 'Arial Narrow', Impact, sans-serif;
+    --body: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --pad-w: clamp(128px, 17vw, 230px);
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .app { max-width: 1280px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 32px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* top bar */
+  .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px; }
+  .eyebrow { margin: 0; font-family: var(--display); font-weight: 600; font-size: 0.82rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--amber); }
+  h1 { margin: 2px 0 0; font-family: var(--display); font-weight: 700; font-size: clamp(1.9rem, 4.6vw, 2.6rem); line-height: 1; text-wrap: balance; }
+  h2 { margin: 0 0 8px; font-family: var(--display); font-weight: 700; font-size: clamp(1.4rem, 3.2vw, 1.9rem); line-height: 1.1; text-wrap: balance; }
+  .hud { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+  .stat { min-width: 84px; padding: 5px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; }
+  .stat-l { font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+  .stat-v { font-family: var(--display); font-weight: 700; font-size: 1.4rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .ghost { appearance: none; background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; font-size: 0.82rem; color: var(--ink-2); cursor: pointer; }
+  .ghost:hover { color: var(--ink); border-color: var(--ink-2); }
+
+  /* board */
+  .board { display: grid; grid-template-columns: minmax(0, 1fr) var(--pad-w); gap: 12px; align-items: start; }
+  .main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+  /* scene */
+  .scene { position: relative; width: min(100%, 125vh); aspect-ratio: 2.4 / 1; margin-inline: auto; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: #06101c; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
+  .stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .sb { position: absolute; left: 10px; top: 10px; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: rgba(5, 8, 15, 0.74); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; font-family: var(--display); font-weight: 600; letter-spacing: 0.06em; }
+  .sb .lbl { font-size: 0.8rem; color: var(--ink-2); text-transform: uppercase; }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink-2); }
+  .dots i.cur { border-color: var(--amber); }
+  .dots i.g { background: var(--good); border-color: var(--good); }
+  .dots i.s { background: var(--bad); border-color: var(--bad); }
+  .banner { position: absolute; inset: 0; z-index: 4; display: grid; place-items: start center; padding-top: 4%; pointer-events: none; }
+  .banner b { font-family: var(--display); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: clamp(1.6rem, 4.6vw, 3.6rem); text-shadow: 0 4px 0 rgba(0,0,0,.45), 0 0 34px currentColor; animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+  .banner.goal b { color: var(--amber); }
+  .banner.save b { color: var(--bad); }
+  @keyframes pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .fx { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; }
+  .fx i.c { position: absolute; top: -16px; width: 8px; height: 14px; animation: fall linear forwards; }
+  .fx i.f { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px 4px rgba(255,255,255,.8); animation: flash 0.5s ease-out forwards; }
+  @keyframes fall { to { transform: translateY(125%) rotate(720deg); } }
+  @keyframes flash { 0% { opacity: 1; transform: scale(0.4); } 100% { opacity: 0; transform: scale(2.2); } }
+
+  /* question card */
+  .q-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; min-width: 0; }
+  .lead { margin: 0; color: var(--ink-2); max-width: 70ch; }
+  .rule { margin: 10px 0 0; padding: 8px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; font-size: 0.88rem; color: var(--ink-2); max-width: 70ch; }
+  .levels { border: 0; margin: 14px 0 0; padding: 0; min-width: 0; }
+  .levels legend { padding: 0; margin-bottom: 6px; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+  .level-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .level { position: relative; display: block; cursor: pointer; }
+  .level input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .lv-box { display: block; height: 100%; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
+  .lv-name { display: block; font-family: var(--display); font-weight: 700; font-size: 1.25rem; line-height: 1.1; }
+  .lv-note { display: block; margin-top: 2px; font-size: 0.8rem; color: var(--ink-2); }
+  .level input:checked + .lv-box { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+  .level input:checked + .lv-box .lv-name { color: var(--amber); }
+  .level input:focus-visible + .lv-box { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .btn { appearance: none; border: 0; border-radius: 10px; padding: 12px 22px; font-weight: 700; font-size: 1rem; cursor: pointer; background: var(--amber); color: var(--amber-ink); box-shadow: 0 3px 0 var(--amber-deep); transition: transform 0.08s, box-shadow 0.08s; }
+  .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--amber-deep); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.quiet { background: transparent; color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+  #startBtn { margin-top: 14px; }
+  .q-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .chip { font-family: var(--display); font-weight: 700; letter-spacing: 0.08em; font-size: 0.95rem; padding: 2px 10px; border-radius: 6px; background: var(--amber); color: var(--amber-ink); }
+  .q-name { color: var(--ink-2); font-size: 0.92rem; }
+  .q-count { margin-left: auto; font-family: var(--display); font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  /* expression */
+  .expr { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2em 0.5em; margin-top: 10px; font-family: var(--display); font-weight: 600; font-size: clamp(1.5rem, 3vw, 2.4rem); line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .em { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.2em 0.4em; }
+  .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.05; }
+  .frac .n { padding: 0 0.18em 0.04em; border-bottom: 0.07em solid currentColor; }
+  .frac .d { padding: 0.04em 0.18em 0; }
+  .mix { display: inline-flex; align-items: center; gap: 0.12em; }
+  .op { color: var(--amber); }
+  .par { font-size: 1.8em; line-height: 0.6; font-weight: 400; color: var(--ink-2); }
+  .eq { color: var(--ink-2); }
+  .ansg { display: inline-flex; align-items: center; gap: 0.3em; }
+  .ans { display: inline-flex; flex-direction: column; align-items: stretch; width: 2.7em; }
+  .box.whole { width: 1.9em; min-height: 2.6em; }
+  .box.single { min-width: 3.6em; min-height: 1.5em; padding: 0 0.4em; }
+  .box { appearance: none; min-height: 1.25em; display: flex; align-items: center; justify-content: center; background: var(--screen); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; color: var(--amber); font-family: inherit; font-weight: 600; font-size: 0.9em; padding: 0 0.2em; overflow: hidden; }
+  .box.on { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+  .box.ok { border-color: var(--good); color: var(--good); }
+  .box.bad { border-color: var(--bad); color: var(--bad); }
+  .ans .bar { height: 0.07em; min-height: 3px; background: var(--ink); margin: 0.1em 0; border-radius: 2px; }
+  .caret { display: inline-block; width: 2px; height: 0.9em; margin-left: 2px; background: var(--amber); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* feedback */
+  .feedback { margin-top: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); display: grid; gap: 6px; }
+  .feedback.ok { background: var(--good-bg); border-color: var(--good); }
+  .feedback.no { background: var(--bad-bg); border-color: var(--bad); }
+  .fb-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+  .fb-title { margin: 0; font-weight: 700; flex: 1 1 200px; }
+  .feedback.ok .fb-title { color: var(--good); }
+  .feedback.no .fb-title { color: var(--bad); }
+  .fb-answers { margin: 0; font-size: 0.9rem; color: var(--ink-2); }
+  #nextBtn { margin: 0; padding: 8px 18px; }
+  .sol { margin: 2px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .sol li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2em 0.5em; font-family: var(--display); font-weight: 500; font-size: 1.2rem; }
+  .sol .st { color: var(--ink-2); font-family: var(--body); font-size: 0.75rem; min-width: 1.6em; }
+
+  /* keypad */
+  .pad { align-self: start; position: sticky; top: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-width: 0; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  .pad-label { margin: 0 0 8px; font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+  .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .key { height: clamp(38px, 6.2vh, 52px); display: grid; place-items: center; padding: 0; border: 1px solid var(--key-edge); border-bottom-width: 3px; border-radius: 8px; background: linear-gradient(var(--key-top), var(--key-bot)); font-family: var(--display); font-weight: 600; font-size: 1.4rem; cursor: pointer; touch-action: manipulation; }
+  .key:hover:not(:disabled) { border-color: var(--ink-2); }
+  .key:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+  .key:disabled { opacity: 0.38; cursor: not-allowed; }
+  .key.util { font-size: 1rem; color: var(--ink-2); }
+  .key.swap { grid-column: span 2; font-family: var(--body); font-size: 0.82rem; font-weight: 600; color: var(--amber); }
+  .btn.wide { width: 100%; margin-top: 8px; padding: 10px 8px; font-size: 0.95rem; }
+  .hint { margin: 8px 0 0; font-size: 0.72rem; color: var(--ink-2); }
+  .hint.warn { color: var(--bad); }
+
+  /* result dialog */
+  .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(5, 7, 11, 0.78); }
+  .modal-card { width: 100%; max-width: 440px; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .modal-card h2 { margin-top: 4px; }
+  .modal-card p.sub { color: var(--ink-2); margin: 0 0 16px; }
+  .m-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; }
+  .m-stats div { padding: 10px 14px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
+  .m-stats dt { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+  .m-stats dd { margin: 0; font-family: var(--display); font-weight: 700; font-size: 1.9rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .m-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  @media (max-width: 760px) {
+    .level-row { grid-template-columns: minmax(0, 1fr); }
+    .key { height: clamp(34px, 6vh, 46px); font-size: 1.2rem; }
+    .pad { padding: 8px; }
+    .btn.wide { font-size: 0.85rem; }
+  }
+  @media (max-width: 420px) {
+    .board { grid-template-columns: minmax(0, 1fr); }
+    .pad { align-self: auto; position: static; }
+  }
+  @media (max-height: 820px) {
+    .app { padding-block: 8px 12px; gap: 8px; }
+    .main { gap: 8px; }
+    .top .eyebrow { display: none; }
+    h1 { font-size: 1.6rem; }
+    .stat { padding: 3px 10px; }
+    .stat-v { font-size: 1.2rem; }
+    .scene { width: min(100%, 112vh); }
+    .q-card { padding: 10px 14px; }
+    .expr { font-size: clamp(1.3rem, 2.5vw, 2rem); margin-top: 6px; }
+    .feedback { margin-top: 8px; padding: 8px 12px; }
+    .sol li { font-size: 1.05rem; }
+    .rule { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Kasrlar ustida amallar</p>
+      <h1>Kasrlar Penaltisi</h1>
+    </div>
+    <div class="hud">
+      <div class="stat"><span class="stat-l">Daraja</span><span class="stat-v" id="levelStat">O'rta</span></div>
+      <div class="stat"><span class="stat-l">Gollar</span><span class="stat-v" id="goalStat">0</span></div>
+      <button type="button" class="ghost" id="soundBtn" aria-pressed="true">Ovoz: yoqilgan</button>
+      <button type="button" class="ghost" id="fsBtn">To'liq ekran</button>
+    </div>
+  </header>
+
+  <div class="board" id="board">
+    <div class="main">
+      <section class="scene" id="scene" role="img" aria-label="Penalti zarbasi sahnasi: darvoza, darvozabon va to'p">
+        <svg class="stage" viewBox="0 0 960 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070b1c"/><stop offset="1" stop-color="#16213f"/></linearGradient>
+            <pattern id="crowd" width="16" height="13" patternUnits="userSpaceOnUse">
+              <circle cx="3" cy="4" r="2.2" fill="#d44f4f"/><circle cx="11" cy="3" r="2.2" fill="#e8c35b"/>
+              <circle cx="7" cy="10" r="2.2" fill="#4f86d4"/><circle cx="14" cy="11" r="2" fill="#e9edf5"/>
+              <circle cx="1" cy="12" r="1.8" fill="#3fb68b"/>
+            </pattern>
+            <linearGradient id="standShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050813" stop-opacity=".88"/><stop offset="1" stop-color="#050813" stop-opacity=".2"/></linearGradient>
+            <radialGradient id="flood"><stop offset="0" stop-color="#fffbe6" stop-opacity=".95"/><stop offset=".25" stop-color="#fff3b8" stop-opacity=".45"/><stop offset="1" stop-color="#fff3b8" stop-opacity="0"/></radialGradient>
+            <radialGradient id="vig" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>
+            <pattern id="mesh" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0H9M0 0V9" stroke="#fff" stroke-opacity=".3" stroke-width=".8" fill="none"/></pattern>
+            <radialGradient id="ballg" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#c3c9d4"/></radialGradient>
+          </defs>
+
+          <!-- stands, lights, boards -->
+          <rect width="960" height="400" fill="url(#sky)"/>
+          <rect y="22" width="960" height="118" fill="url(#crowd)" opacity=".85"/>
+          <rect y="22" width="960" height="118" fill="url(#standShade)"/>
+          <path d="M0 62H960M0 100H960" stroke="#0a0f1e" stroke-width="3"/>
+          <rect width="960" height="24" fill="#05070f"/>
+          <g>
+            <circle cx="110" cy="14" r="46" fill="url(#flood)"/><circle cx="330" cy="14" r="46" fill="url(#flood)"/>
+            <circle cx="630" cy="14" r="46" fill="url(#flood)"/><circle cx="850" cy="14" r="46" fill="url(#flood)"/>
+          </g>
+          <rect y="140" width="960" height="18" fill="#0b1020"/>
+          <text x="12" y="153" font-family="Saira Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="12" letter-spacing="4" fill="#f2b84b">KASRLAR KUBOGI  ·  MATEMATIK LIGA  ·  KASRLAR KUBOGI  ·  MATEMATIK LIGA  ·  KASRLAR KUBOGI  ·  MATEMATIK LIGA</text>
+
+          <!-- pitch -->
+          <rect y="158" width="960" height="14" fill="#1d5f35"/>
+          <rect y="172" width="960" height="17" fill="#195430"/>
+          <rect y="189" width="960" height="20" fill="#1d5f35"/>
+          <rect y="209" width="960" height="24" fill="#195430"/>
+          <rect y="233" width="960" height="29" fill="#1d5f35"/>
+          <rect y="262" width="960" height="36" fill="#195430"/>
+          <rect y="298" width="960" height="44" fill="#1d5f35"/>
+          <rect y="342" width="960" height="58" fill="#195430"/>
+          <rect y="158" width="960" height="242" fill="url(#vig)"/>
+          <g fill="none" stroke="#e9f2ea" stroke-opacity=".8" stroke-width="2">
+            <line x1="60" y1="216" x2="900" y2="216"/>
+            <polyline points="318,216 288,248 672,248 642,216"/>
+            <polyline points="215,216 130,322 830,322 745,216"/>
+            <path d="M375 322 Q480 352 585 322"/>
+          </g>
+          <ellipse cx="480" cy="284" rx="5" ry="2.2" fill="#e9f2ea"/>
+
+          <!-- goal: back net, keeper, ball, front net, frame -->
+          <g id="netBack">
+            <polygon points="346,128 614,128 626,208 334,208" fill="#0a1626" opacity=".6"/>
+            <polygon points="346,128 614,128 626,208 334,208" fill="url(#mesh)"/>
+            <polygon points="330,120 346,128 334,208 330,216" fill="url(#mesh)" opacity=".6"/>
+            <polygon points="630,120 614,128 626,208 630,216" fill="url(#mesh)" opacity=".6"/>
+            <polygon points="330,120 630,120 614,128 346,128" fill="url(#mesh)" opacity=".8"/>
+          </g>
+
+          <g id="keeper" transform="translate(480 178)">
+            <rect x="-9" y="12" width="7" height="22" fill="#b6e63a"/><rect x="2" y="12" width="7" height="22" fill="#b6e63a"/>
+            <rect x="-11" y="33" width="10" height="5" rx="2" fill="#111"/><rect x="1" y="33" width="10" height="5" rx="2" fill="#111"/>
+            <path d="M-12 2H12L13 18H2L0 8L-2 18H-13Z" fill="#161a25"/>
+            <path d="M-14 -22Q0 -27 14 -22L13 4H-13Z" fill="#b6e63a"/>
+            <path d="M-12 -20L-26 -40M12 -20L26 -40" stroke="#7aa51f" stroke-width="7" stroke-linecap="round"/>
+            <circle cx="-27" cy="-44" r="6" fill="#f2f4f8" stroke="#9aa3b2"/><circle cx="27" cy="-44" r="6" fill="#f2f4f8" stroke="#9aa3b2"/>
+            <circle cx="0" cy="-31" r="8" fill="#e0b48a"/>
+            <path d="M-8 -33Q0 -43 8 -33Q4 -37 0 -37Q-4 -37 -8 -33Z" fill="#2a1d14"/>
+            <circle cx="-3" cy="-31" r="1.1" fill="#1a1a1a"/><circle cx="3" cy="-31" r="1.1" fill="#1a1a1a"/>
+            <path id="kBrows" d="M-5 -34L-1.5 -33M5 -34L1.5 -33" stroke="#2a1d14" stroke-width="1" stroke-linecap="round" fill="none"/>
+            <path id="kMouth" d="M-2.5 -26.5H2.5" stroke="#5a2c20" stroke-width="1" stroke-linecap="round" fill="none"/>
+          </g>
+
+          <ellipse id="ballShadow" cx="480" cy="292" rx="10" ry="3" fill="#000" opacity=".4"/>
+          <g id="ball" transform="translate(480 284)">
+            <g id="ballSpin">
+              <circle r="11" fill="url(#ballg)" stroke="#6b7280" stroke-width=".6"/>
+              <polygon points="0,-4.5 4.3,-1.4 2.6,3.6 -2.6,3.6 -4.3,-1.4" fill="#1b1f29"/>
+              <path d="M0 -4.5V-10.8M4.3 -1.4L10.3 -3.4M2.6 3.6L6.4 8.8M-2.6 3.6L-6.4 8.8M-4.3 -1.4L-10.3 -3.4" stroke="#1b1f29" stroke-width=".9" fill="none"/>
+              <circle cx="0" cy="-10" r="2.4" fill="#1b1f29"/><circle cx="9.6" cy="-3" r="2.4" fill="#1b1f29"/><circle cx="-9.6" cy="-3" r="2.4" fill="#1b1f29"/>
+              <circle cx="5.8" cy="8.2" r="2.4" fill="#1b1f29"/><circle cx="-5.8" cy="8.2" r="2.4" fill="#1b1f29"/>
+            </g>
+          </g>
+
+          <g id="netFront">
+            <polygon points="334,126 626,126 626,208 334,208" fill="url(#mesh)" opacity=".35"/>
+          </g>
+          <g fill="#f4f6fa">
+            <rect x="326" y="118" width="8" height="98"/><rect x="626" y="118" width="8" height="98"/><rect x="326" y="118" width="308" height="8"/>
+          </g>
+          <g fill="#c3c9d4"><rect x="332" y="126" width="2" height="90"/><rect x="626" y="126" width="2" height="90"/></g>
+
+          <!-- kicker, back view -->
+          <g id="kicker" transform="translate(395 398) scale(0.72)">
+            <ellipse cx="0" cy="2" rx="32" ry="7" fill="#000" opacity=".35"/>
+            <g id="kLegL"><rect x="-15" y="-54" width="12" height="46" fill="#f1f1f1"/><rect x="-17" y="-9" width="16" height="9" rx="3" fill="#15171d"/></g>
+            <g id="kLegR"><rect x="3" y="-54" width="12" height="46" fill="#f1f1f1"/><rect x="1" y="-9" width="16" height="9" rx="3" fill="#15171d"/></g>
+            <path d="M-18 -78H18L20 -50H3L0 -62L-3 -50H-20Z" fill="#f4f4f4" stroke="#c9ced8" stroke-width="1"/>
+            <path d="M-21 -130Q0 -139 21 -130L20 -76H-20Z" fill="#d0342c"/>
+            <text x="0" y="-98" text-anchor="middle" font-family="Saira Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="30" fill="#fff">9</text>
+            <g id="kArmL"><rect x="-31" y="-128" width="10" height="26" rx="4" fill="#d0342c"/><rect x="-30" y="-104" width="8" height="28" rx="4" fill="#d9a67a"/></g>
+            <g id="kArmR"><rect x="21" y="-128" width="10" height="26" rx="4" fill="#d0342c"/><rect x="22" y="-104" width="8" height="28" rx="4" fill="#d9a67a"/></g>
+            <rect x="-5" y="-145" width="10" height="9" fill="#d9a67a"/>
+            <circle cx="0" cy="-156" r="13" fill="#d9a67a"/>
+            <path d="M-13 -158Q-12 -172 0 -172Q12 -172 13 -158Q8 -164 0 -164Q-8 -164 -13 -158Z" fill="#241a14"/>
+          </g>
+        </svg>
+
+        <div class="sb" aria-live="polite">
+          <span class="lbl" id="sbLabel">Zarba</span>
+          <div class="dots" id="dots"></div>
+        </div>
+        <div class="banner" id="banner" hidden><b id="bannerText"></b></div>
+        <div class="fx" id="fx"></div>
+      </section>
+
+      <div class="q-card" id="qcard">
+        <div id="intro">
+          <h2>Kasrlar penaltisi</h2>
+          <p class="lead">Kasrlar ustida amallarni bajarib, javobni kiriting. To'g'ri javob gol bo'ladi, xato javobni darvozabon qaytaradi. Jami 5 ta zarba beriladi.</p>
+          <p class="rule">Javob katakchalari savolga qarab o'zgaradi: butun son, qisqargan kasr, aralash son (butun qism va to'g'ri kasr) yoki vergulli o'nli kasr. Savol ustida javob qaysi ko'rinishda yozilishi ko'rsatiladi.</p>
+          <fieldset class="levels">
+            <legend>Qiyinlik darajasi</legend>
+            <div class="level-row">
+              <label class="level"><input type="radio" name="level" value="easy"><span class="lv-box"><span class="lv-name">Oson</span><span class="lv-note">1 ta amal: ko'paytirish, bo'lish, qo'shish yoki ayirish</span></span></label>
+              <label class="level"><input type="radio" name="level" value="mid" checked><span class="lv-box"><span class="lv-name">O'rta</span><span class="lv-note">2 ta amal, turli ko'rinishdagi kasrlar</span></span></label>
+              <label class="level"><input type="radio" name="level" value="hard"><span class="lv-box"><span class="lv-name">Qiyin</span><span class="lv-note">3 ta amal, qavslar bilan</span></span></label>
+            </div>
+          </fieldset>
+          <button type="button" class="btn" id="startBtn">Zarbalarni boshlash</button>
+        </div>
+
+        <div id="question" hidden>
+          <div class="q-meta">
+            <span class="chip" id="qChip"></span>
+            <span class="q-name" id="qName"></span>
+            <span class="q-count" id="qCount"></span>
+          </div>
+          <div class="expr">
+            <span class="em" id="exprMain"></span>
+            <span class="eq">=</span>
+            <span class="ansg">
+              <button type="button" class="box whole" id="boxW" data-f="w" aria-label="Butun qism" hidden></button>
+              <button type="button" class="box single" id="boxS" data-f="s" aria-label="Javob" hidden></button>
+              <span class="ans" id="ansFrac">
+                <button type="button" class="box" id="boxN" data-f="n" aria-label="Surat"></button>
+                <span class="bar"></span>
+                <button type="button" class="box" id="boxD" data-f="d" aria-label="Maxraj"></button>
+              </span>
+            </span>
+          </div>
+          <div class="feedback" id="feedback" role="status" hidden>
+            <div class="fb-top">
+              <p class="fb-title" id="fbTitle"></p>
+              <button type="button" class="btn" id="nextBtn" hidden>Keyingi zarba</button>
+            </div>
+            <p class="fb-answers" id="fbAnswers"></p>
+            <ol class="sol" id="sol"></ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="pad" id="pad" aria-label="Javob kiritish paneli">
+      <p class="pad-label">Javob paneli</p>
+      <div class="keys" id="keys">
+        <button type="button" class="key" data-k="7">7</button>
+        <button type="button" class="key" data-k="8">8</button>
+        <button type="button" class="key" data-k="9">9</button>
+        <button type="button" class="key" data-k="4">4</button>
+        <button type="button" class="key" data-k="5">5</button>
+        <button type="button" class="key" data-k="6">6</button>
+        <button type="button" class="key" data-k="1">1</button>
+        <button type="button" class="key" data-k="2">2</button>
+        <button type="button" class="key" data-k="3">3</button>
+        <button type="button" class="key util" data-k="," id="commaKey" aria-label="Vergul">,</button>
+        <button type="button" class="key" data-k="0">0</button>
+        <button type="button" class="key util" data-k="back" aria-label="Oxirgi raqamni o'chirish">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5 3 12l6 7h12V5z"/><path d="m12.5 9.5 5 5m0-5-5 5"/></svg>
+        </button>
+        <button type="button" class="key util" data-k="clear" id="clearKey" aria-label="Tozalash">C</button>
+        <button type="button" class="key swap" data-k="swap" id="swapKey">Maxrajga o'tish</button>
+      </div>
+      <button type="button" class="btn wide" id="submit" disabled>Zarba berish</button>
+      <p class="hint" id="hint"></p>
+    </aside>
+  </div>
+</main>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
+  <div class="modal-card">
+    <p class="eyebrow">Seriya yakuni</p>
+    <h2 id="mTitle"></h2>
+    <p class="sub" id="mText"></p>
+    <dl class="m-stats">
+      <div><dt>Gollar</dt><dd id="mGoals"></dd></div>
+      <div><dt>Qaytarilgan</dt><dd id="mSaves"></dd></div>
+    </dl>
+    <div class="m-actions">
+      <button type="button" class="btn" id="again">Yana o'ynash</button>
+      <button type="button" class="btn quiet" id="toSettings">Sozlamalar</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  function $(id) { return document.getElementById(id); }
+  var TOTAL = 5;
+  var LEVELS = {
+    easy: { label: 'Oson', ops: 1, maxDen: 8, finN: 120, finD: 40, mid: 400 },
+    mid: { label: "O'rta", ops: 2, maxDen: 10, finN: 300, finD: 40, mid: 600 },
+    hard: { label: 'Qiyin', ops: 3, maxDen: 12, finN: 500, finD: 60, mid: 800 }
+  };
+
+  /* ---------- fractions ---------- */
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = a % b; a = b; b = t; } return a || 1; }
+  function F(n, d) { if (d < 0) { n = -n; d = -d; } var g = gcd(n, d); return { n: n / g, d: d / g }; }
+  var ARITH = {
+    '+': function (a, b) { return F(a.n * b.d + b.n * a.d, a.d * b.d); },
+    '−': function (a, b) { return F(a.n * b.d - b.n * a.d, a.d * b.d); },
+    '×': function (a, b) { return F(a.n * b.n, a.d * b.d); },
+    '÷': function (a, b) { return F(a.n * b.d, a.d * b.n); }
+  };
+  var PREC = { '+': 1, '−': 1, '×': 2, '÷': 2 };
+  var OPS = ['+', '−', '×', '÷'];
+
+  function ri(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function wpick(list) {
+    var sum = 0, i;
+    for (i = 0; i < list.length; i++) sum += list[i][1];
+    var r = Math.random() * sum;
+    for (i = 0; i < list.length; i++) { r -= list[i][1]; if (r <= 0) return list[i][0]; }
+    return list[0][0];
+  }
+  function coprime(lo, hi, d) {
+    for (var i = 0; i < 60; i++) { var n = ri(lo, hi); if (gcd(n, d) === 1) return n; }
+    return lo === 1 ? 1 : d + 1;
+  }
+
+  /* ---------- operands in different forms ---------- */
+  var QUARTERS = [['0,25', 25], ['0,75', 75], ['1,25', 125], ['1,75', 175], ['2,25', 225], ['2,75', 275]];
+  function leafOf(form, maxDen) {
+    var d, n;
+    if (form === 'prop') { d = ri(2, maxDen); n = coprime(1, d - 1, d); return { leaf: 1, form: form, v: F(n, d), n: n, d: d }; }
+    if (form === 'imp') { d = ri(2, maxDen); n = coprime(d + 1, 2 * d + Math.floor(d / 2), d); return { leaf: 1, form: form, v: F(n, d), n: n, d: d }; }
+    if (form === 'mix') { d = ri(2, maxDen); var p = coprime(1, d - 1, d), w = ri(1, 4); return { leaf: 1, form: form, v: F(w * d + p, d), w: w, p: p, d: d }; }
+    if (form === 'dec') {
+      if (Math.random() < 0.7) {
+        var t; do { t = ri(1, 39); } while (t % 10 === 0);
+        return { leaf: 1, form: form, v: F(t, 10), disp: (t / 10).toFixed(1).replace('.', ',') };
+      }
+      var q = QUARTERS[ri(0, QUARTERS.length - 1)];
+      return { leaf: 1, form: form, v: F(q[1], 100), disp: q[0] };
+    }
+    var k = ri(2, 9);
+    return { leaf: 1, form: 'int', v: F(k, 1), k: k };
+  }
+  function makeLeaf(maxDen) {
+    return leafOf(wpick([['prop', 30], ['imp', 16], ['mix', 24], ['dec', 22], ['int', 8]]), maxDen);
+  }
+
+  /* ---------- expression trees ---------- */
+  function pickOps(k) {
+    var list;
+    do {
+      list = [];
+      for (var i = 0; i < k; i++) list.push(Math.random() < 0.3 ? '÷' : OPS[ri(0, 2)]);
+    } while (k > 1 && list.every(function (o) { return o === list[0]; }));
+    return list;
+  }
+  function gen(k, L, st) {
+    if (k === 0) return makeLeaf(L.maxDen);
+    var op = st.ops[st.i++], left = ri(0, k - 1);
+    var l = gen(left, L, st), r = gen(k - 1 - left, L, st);
+    return { op: op, l: l, r: r };
+  }
+  function leavesOf(t, out) {
+    if (t.leaf) { out.push(t); return out; }
+    leavesOf(t.l, out); leavesOf(t.r, out); return out;
+  }
+  function evalT(t, L) {
+    if (t.leaf) return t.v;
+    var a = evalT(t.l, L); if (!a) return null;
+    var b = evalT(t.r, L); if (!b) return null;
+    if (t.op === '−' && a.n * b.d <= b.n * a.d) return null;
+    var r = ARITH[t.op](a, b);
+    if (r.n <= 0 || r.n > L.mid || r.d > L.mid) return null;
+    t.v = r;
+    return r;
+  }
+  function makeQuestion(level) {
+    var L = LEVELS[level];
+    for (var tries = 0; tries < 8000; tries++) {
+      var relax = tries > 5000 ? 3 : 1;
+      var t = gen(L.ops, L, { ops: pickOps(L.ops), i: 0 });
+      var forms = {}, lv = leavesOf(t, []);
+      lv.forEach(function (x) { forms[x.form] = 1; });
+      if (Object.keys(forms).length < 2) continue;
+      var r = evalT(t, { mid: L.mid * relax });
+      if (!r || r.n > L.finN * relax || r.d > L.finD * relax) continue;
+      return { tree: t, ans: r, level: level };
+    }
+    var a = leafOf('prop', 6), b = leafOf('mix', 6), tt = { op: '+', l: a, r: b };
+    return { tree: tt, ans: evalT(tt, { mid: 99999 }), level: level };
+  }
+
+  /* ---------- rendering ---------- */
+  function fracHTML(n, d) { return '<span class="frac"><span class="n">' + n + '</span><span class="d">' + d + '</span></span>'; }
+  function valHTML(v) { return v.d === 1 ? String(v.n) : fracHTML(v.n, v.d); }
+  function leafHTML(l) {
+    if (l.form === 'prop' || l.form === 'imp') return fracHTML(l.n, l.d);
+    if (l.form === 'mix') return '<span class="mix">' + l.w + fracHTML(l.p, l.d) + '</span>';
+    if (l.form === 'dec') return l.disp;
+    return String(l.k);
+  }
+  function exprHTML(t) {
+    if (t.leaf) return '<span class="tk">' + leafHTML(t) + '</span>';
+    function side(c, sd) {
+      var s = exprHTML(c);
+      if (!c.leaf && (PREC[c.op] < PREC[t.op] || (PREC[c.op] === PREC[t.op] && sd === 'r'))) {
+        return '<span class="par">(</span>' + s + '<span class="par">)</span>';
+      }
+      return s;
+    }
+    return side(t.l, 'l') + '<span class="op">' + t.op + '</span>' + side(t.r, 'r');
+  }
+  function solutionHTML(q) {
+    var steps = [], conv = [];
+    (function walk(n) {
+      if (n.leaf) { if (n.form === 'mix' || n.form === 'dec') conv.push(n); return; }
+      walk(n.l); walk(n.r); steps.push(n);
+    })(q.tree);
+    var html = '';
+    if (conv.length) {
+      html += '<li><span class="st">0)</span>' + conv.map(function (l) {
+        return '<span class="tk">' + leafHTML(l) + ' = ' + valHTML(l.v) + '</span>';
+      }).join('<span class="eq">;</span>') + '</li>';
+    }
+    steps.forEach(function (n, i) {
+      html += '<li><span class="st">' + (i + 1) + ')</span>' + valHTML(n.l.v) + '<span class="op">' + n.op + '</span>' +
+        valHTML(n.r.v) + '<span class="eq">=</span>';
+      if (n.op === '÷') {
+        // dividing means multiplying by the reciprocal
+        html += valHTML(n.l.v) + '<span class="op">×</span>' + valHTML(F(n.r.v.d, n.r.v.n)) + '<span class="eq">=</span>';
+      }
+      html += valHTML(n.v) + '</li>';
+    });
+    if (q.fmt === 'mixed') {
+      html += '<li><span class="st">&rarr;</span>' + valHTML(q.ans) + '<span class="eq">=</span>' + mixedHTML(q.ans) + '</li>';
+    }
+    if (q.fmt === 'dec') {
+      html += '<li><span class="st">&rarr;</span>' + valHTML(q.ans) + '<span class="eq">=</span>' + decText(q.ans) + '</li>';
+    }
+    return html;
+  }
+  function mixedHTML(v) {
+    var w = Math.floor(v.n / v.d), r = v.n - w * v.d;
+    return '<span class="mix">' + w + fracHTML(r, v.d) + '</span>';
+  }
+  /* decimal helpers: a result is a decimal when its denominator divides 10, 100 or 1000 */
+  function decPlaces(v) {
+    for (var k = 1; k <= 3; k++) { if (v.d > 1 && Math.pow(10, k) % v.d === 0) return k; }
+    return 0;
+  }
+  function decText(v) {
+    var k = decPlaces(v), p = Math.pow(10, k), tot = v.n * (p / v.d), w = Math.floor(tot / p), f = String(tot - w * p);
+    while (f.length < k) f = '0' + f;
+    return w + ',' + f;
+  }
+  function hasOp(t, o) { return !t.leaf && (t.op === o || hasOp(t.l, o) || hasOp(t.r, o)); }
+  function hasForm(t, f) { return leavesOf(t, []).some(function (x) { return x.form === f; }); }
+  // the answer is asked in the same shape as the numbers in the question
+  function pickFmt(q) {
+    var a = q.ans;
+    if (a.d === 1) return 'int';
+    if (decPlaces(a) > 0 && hasForm(q.tree, 'dec') && Math.random() < 0.8) return 'dec';
+    if (a.n < a.d) return 'proper';
+    var wm = 1 + (hasForm(q.tree, 'mix') ? 2 : 0), wi = 1 + (hasForm(q.tree, 'imp') ? 2 : 0);
+    return Math.random() * (wm + wi) < wm ? 'mixed' : 'improper';
+  }
+  function buildQuestions(level) {
+    var out = [], seen = {};
+    function add(q) {
+      var key = exprHTML(q.tree);
+      if (seen[key]) return false;
+      seen[key] = 1; q.html = key; q.fmt = pickFmt(q); out.push(q); return true;
+    }
+    while (out.length < TOTAL) add(makeQuestion(level));
+    function has(f) { return out.some(function (x) { return x.fmt === f; }); }
+    // every series has at least one decimal answer and, when possible, one mixed number answer
+    if (!has('dec')) {
+      for (var i = 0; i < 4000; i++) {
+        var q = makeQuestion(level), key = exprHTML(q.tree);
+        if (seen[key] || !(decPlaces(q.ans) > 0 && hasForm(q.tree, 'dec'))) continue;
+        var cand = [];
+        out.forEach(function (x, j) { if (x.fmt !== 'mixed') cand.push(j); });
+        if (!cand.length) break;
+        var at = cand[ri(0, cand.length - 1)];
+        seen[key] = 1; q.html = key; q.fmt = 'dec'; out[at] = q;
+        break;
+      }
+    }
+    if (!has('mixed')) {
+      for (var m = 0; m < out.length; m++) {
+        var a = out[m].ans;
+        if (out[m].fmt === 'improper' && a.d > 1 && a.n > a.d) { out[m].fmt = 'mixed'; break; }
+      }
+    }
+    // every series has at least two questions with division
+    function cnt(f) { return out.filter(f).length; }
+    function isDiv(x) { return hasOp(x.tree, '÷'); }
+    for (var g = 0; g < 4000 && cnt(isDiv) < 2; g++) {
+      var dq = makeQuestion(level), dkey = exprHTML(dq.tree);
+      if (seen[dkey] || !hasOp(dq.tree, '÷')) continue;
+      var spare = [];
+      out.forEach(function (x, j) {
+        if (isDiv(x)) return;
+        if (x.fmt === 'dec' && cnt(function (y) { return y.fmt === 'dec'; }) < 2) return;
+        if (x.fmt === 'mixed' && cnt(function (y) { return y.fmt === 'mixed'; }) < 2) return;
+        spare.push(j);
+      });
+      if (!spare.length) break;
+      seen[dkey] = 1; dq.html = dkey; dq.fmt = pickFmt(dq);
+      out[spare[ri(0, spare.length - 1)]] = dq;
+    }
+    return out;
+  }
+
+  /* ---------- Sound: everything is synthesized, no audio files ---------- */
+  var actx = null, soundOn = true, noiseBuf = null, crowdNode = null;
+  function ac() {
+    if (!soundOn) return null;
+    try {
+      if (!actx) {
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        var len = actx.sampleRate * 2, b = actx.createBuffer(1, len, actx.sampleRate), d = b.getChannelData(0);
+        for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        noiseBuf = b;
+      }
+      if (actx.state === 'suspended') actx.resume();
+    } catch (e) { actx = null; }
+    return actx;
+  }
+  function tone(freq, when, dur, type, vol, slideTo) {
+    var c = ac(); if (!c) return;
+    try {
+      var t = c.currentTime + when, o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(freq, t);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.15, t + Math.min(0.02, dur / 3));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + dur + 0.03);
+    } catch (e) {}
+  }
+  function noise(when, dur, ftype, f0, q, vol, f1, attack) {
+    var c = ac(); if (!c) return;
+    try {
+      var t = c.currentTime + when, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      s.buffer = noiseBuf; s.loop = true;
+      f.type = ftype; f.frequency.setValueAtTime(f0, t); f.Q.value = q || 1;
+      if (f1) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + (attack || 0.005));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(c.destination);
+      s.start(t, Math.random()); s.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
+  function whistle(long) {
+    var c = ac(); if (!c) return;
+    try {
+      var t = c.currentTime, dur = long ? 0.95 : 0.55;
+      [2850, 3010].forEach(function (f) {
+        var o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        lfo.frequency.value = 28; lg.gain.value = 0.05;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.1, t + 0.04);
+        g.gain.setValueAtTime(0.1, t + dur - 0.08);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        lfo.connect(lg); lg.connect(g.gain);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); lfo.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+      });
+    } catch (e) {}
+  }
+  function ambientStart() {
+    var c = ac(); if (!c || crowdNode) return;
+    try {
+      var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+      s.buffer = noiseBuf; s.loop = true;
+      f.type = 'bandpass'; f.frequency.value = 520; f.Q.value = 0.45;
+      lfo.frequency.value = 0.3; lg.gain.value = 140; lfo.connect(lg); lg.connect(f.frequency);
+      g.gain.setValueAtTime(0.0001, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.03, c.currentTime + 1.5);
+      s.connect(f); f.connect(g); g.connect(c.destination);
+      s.start(); lfo.start();
+      crowdNode = { s: s, g: g, lfo: lfo };
+    } catch (e) { crowdNode = null; }
+  }
+  function ambientLevel(v, t) {
+    if (!crowdNode || !actx) return;
+    try {
+      var now = actx.currentTime, g = crowdNode.g.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(Math.max(g.value, 0.0001), now);
+      g.exponentialRampToValueAtTime(v, now + t);
+    } catch (e) {}
+  }
+  function ambientStop() {
+    if (!crowdNode) return;
+    try { crowdNode.s.stop(); crowdNode.lfo.stop(); } catch (e) {}
+    crowdNode = null;
+  }
+  var SND = {
+    tick: function () { tone(520, 0, 0.04, 'square', 0.04); },
+    warn: function () { tone(330, 0, 0.1, 'triangle', 0.15); tone(262, 0.1, 0.14, 'triangle', 0.15); },
+    whistle: whistle,
+    kick: function () { tone(170, 0, 0.14, 'sine', 0.55, 45); noise(0, 0.07, 'bandpass', 1400, 1, 0.3, 600); },
+    tension: function (dur) {
+      noise(0, dur, 'bandpass', 300, 1.2, 0.1, 2200, dur * 0.8);
+      noise(0, dur, 'bandpass', 700, 0.6, 0.07, 950, dur * 0.6);
+      ambientLevel(0.012, 0.2);
+    },
+    net: function () { noise(0, 0.4, 'bandpass', 3200, 0.8, 0.3, 1200); tone(110, 0, 0.18, 'sine', 0.25, 70); },
+    roar: function () {
+      noise(0, 3.2, 'bandpass', 650, 0.5, 0.5, 0, 0.25);
+      noise(0.05, 2.6, 'bandpass', 1700, 0.7, 0.22, 0, 0.3);
+      [520, 640, 780, 900].forEach(function (f, i) { tone(f, 0.1 + i * 0.12, 1.3, 'sine', 0.035, f * 1.25); });
+      ambientLevel(0.05, 0.3);
+      setTimeout(function () { ambientLevel(0.03, 2.5); }, 2600);
+    },
+    horn: function () {
+      [415, 523, 622].forEach(function (f) { tone(f, 0, 0.7, 'sawtooth', 0.045, f * 0.97); tone(f, 0.85, 0.8, 'sawtooth', 0.045, f * 0.96); });
+    },
+    stomp: function () {
+      for (var r = 0; r < 2; r++) {
+        var b = 0.3 + r * 1.2;
+        tone(95, b, 0.14, 'sine', 0.5, 50); noise(b, 0.1, 'lowpass', 220, 1, 0.3);
+        tone(95, b + 0.3, 0.14, 'sine', 0.5, 50); noise(b + 0.3, 0.1, 'lowpass', 220, 1, 0.3);
+        noise(b + 0.6, 0.09, 'highpass', 1800, 0.7, 0.3);
+      }
+    },
+    fanfare: function () {
+      [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, i * 0.09, 0.22, 'triangle', 0.16); });
+      [523, 659, 784, 1047].forEach(function (f) { tone(f, 0.5, 0.9, 'triangle', 0.1); });
+    },
+    save: function () {
+      noise(0, 0.06, 'bandpass', 2600, 1, 0.45); tone(120, 0, 0.1, 'sine', 0.35, 60);
+      noise(0.15, 1.6, 'lowpass', 900, 0.7, 0.3, 250, 0.2);
+      tone(380, 0.2, 1.3, 'sine', 0.07, 230); tone(480, 0.25, 1.3, 'sine', 0.05, 300);
+    },
+    win: function () { whistle(true); SND.fanfare(); SND.roar(); },
+    lose: function () { whistle(true); [392, 330, 262].forEach(function (f, i) { tone(f, 0.5 + i * 0.2, 0.35, 'sine', 0.16); }); }
+  };
+
+  /* ---------- Scene helpers ---------- */
+  var REDUCED = false;
+  try { REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  var SPEED = REDUCED ? 0.45 : 1;
+  var BALL0 = { x: 480, y: 284 };
+  var KICK0 = { x: 395, y: 398, s: 0.72 };
+  var KICK1 = { x: 438, y: 340, s: 0.58 };
+  var token = 0;
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  function run(ms, step, done, tk) {
+    var t0 = null, d = ms * SPEED;
+    function frame(ts) {
+      if (tk !== token) return;
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / d);
+      step(p);
+      if (p < 1) requestAnimationFrame(frame); else if (done) done();
+    }
+    requestAnimationFrame(frame);
+  }
+  function wait(ms, fn, tk) { setTimeout(function () { if (tk === token) fn(); }, ms * SPEED); }
+
+  var ballEl = $('ball'), spinEl = $('ballSpin'), shEl = $('ballShadow'), keeperEl = $('keeper'), kickerEl = $('kicker');
+  var spin = 0;
+  function setBall(x, y, s, groundY) {
+    ballEl.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') scale(' + s.toFixed(3) + ')');
+    spin += 22;
+    spinEl.setAttribute('transform', 'rotate(' + spin + ')');
+    var gy = groundY === undefined ? 292 : groundY;
+    shEl.setAttribute('cx', x.toFixed(1)); shEl.setAttribute('cy', gy.toFixed(1));
+    shEl.setAttribute('rx', (10 * s).toFixed(1)); shEl.setAttribute('ry', (3 * s).toFixed(1));
+  }
+  function setKeeper(x, y, rot) { keeperEl.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + rot.toFixed(1) + ')'); }
+  function setKicker(x, y, s, dy) { kickerEl.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + (y + (dy || 0)).toFixed(1) + ') scale(' + s.toFixed(3) + ')'); }
+  function setFace(mode) {
+    var m = $('kMouth'), b = $('kBrows');
+    if (mode === 'happy') { m.setAttribute('d', 'M-3.5 -27Q0 -22 3.5 -27'); b.setAttribute('d', 'M-5 -35L-1.5 -34M5 -35L1.5 -34'); }
+    else if (mode === 'sad') { m.setAttribute('d', 'M-3.5 -25Q0 -29.5 3.5 -25'); b.setAttribute('d', 'M-5.5 -33L-1.5 -35M5.5 -33L1.5 -35'); }
+    else { m.setAttribute('d', 'M-2.5 -26.5H2.5'); b.setAttribute('d', 'M-5 -34L-1.5 -33M5 -34L1.5 -33'); }
+  }
+  function setArms(l, r) {
+    $('kArmL').setAttribute('transform', 'rotate(' + l + ' -26 -126)');
+    $('kArmR').setAttribute('transform', 'rotate(' + r + ' 26 -126)');
+  }
+  function setLeg(k) { $('kLegR').setAttribute('transform', 'translate(0 ' + (-16 * k).toFixed(1) + ') rotate(' + (-18 * k).toFixed(1) + ' 9 -54)'); }
+  function resetScene() {
+    token++;
+    setBall(BALL0.x, BALL0.y, 1);
+    setKeeper(480, 178, 0); setFace('calm');
+    setKicker(KICK0.x, KICK0.y, KICK0.s); setArms(0, 0); setLeg(0);
+    $('banner').hidden = true;
+    $('fx').innerHTML = '';
+  }
+
+  var CONF = ['#f2b84b', '#e8523a', '#4a8cf0', '#3fb68b', '#ffffff', '#ff8fb0'];
+  function confetti() {
+    var fx = $('fx'), html = '';
+    for (var i = 0; i < 70; i++) {
+      html += '<i class="c" style="left:' + (Math.random() * 100).toFixed(1) + '%;background:' + CONF[i % CONF.length] +
+        ';animation-duration:' + (1.7 + Math.random() * 1.6).toFixed(2) + 's;animation-delay:' + (Math.random() * 0.5).toFixed(2) +
+        's;transform:rotate(' + Math.floor(Math.random() * 180) + 'deg)"></i>';
+    }
+    for (var j = 0; j < 9; j++) {
+      html += '<i class="f" style="left:' + (8 + Math.random() * 84).toFixed(1) + '%;top:' + (4 + Math.random() * 28).toFixed(1) +
+        '%;animation-delay:' + (Math.random() * 0.7).toFixed(2) + 's"></i>';
+    }
+    fx.innerHTML = html;
+  }
+  function banner(text, cls) {
+    var b = $('banner');
+    b.className = 'banner ' + cls;
+    $('bannerText').textContent = text;
+    b.hidden = false;
+  }
+
+  /* ---------- State ---------- */
+  var phase = 'idle', round = 0, qs = [], results = [], goals = 0, saves = 0, curLevel = 'mid';
+  var inp = { w: '', n: '', d: '', s: '' }, field = 'n', hintTimer = 0, nextTimer = 0;
+  var HINTS = {
+    mixed: "Butun qism va kasr qismini yozing. Kasr qismi qisqargan to'g'ri kasr bo'lsin, aks holda xato hisoblanadi.",
+    improper: "Surat va maxrajni yozing. Qisqarmagan kasr xato hisoblanadi, aralash songa aylantirmang.",
+    proper: "Surat va maxrajni yozing. Qisqarmagan kasr xato hisoblanadi.",
+    int: "Javob butun son. Raqamlarni kiriting.",
+    dec: "O'nli kasrni vergul bilan yozing, masalan 0,25."
+  };
+  var QNAMES = {
+    mixed: "Javobni aralash son ko'rinishida yozing",
+    improper: "Javobni noto'g'ri kasr ko'rinishida yozing",
+    proper: "Javobni qisqargan kasr ko'rinishida yozing",
+    int: "Javobni butun son ko'rinishida yozing",
+    dec: "Javobni o'nli kasr ko'rinishida yozing"
+  };
+  function curFmt() { return qs[round] ? qs[round].fmt : 'proper'; }
+  function hintText() { return HINTS[curFmt()]; }
+  function fieldsOf(fmt) { return fmt === 'mixed' ? ['w', 'n', 'd'] : (fmt === 'int' || fmt === 'dec') ? ['s'] : ['n', 'd']; }
+  function firstField(fmt) { return fieldsOf(fmt)[0]; }
+
+  function chosenLevel() { var r = document.querySelector('input[name="level"]:checked'); return r ? r.value : 'mid'; }
+
+  /* ---------- Rendering ---------- */
+  function renderDots() {
+    var h = '';
+    for (var i = 0; i < TOTAL; i++) {
+      var c = results[i] === 'g' ? 'g' : results[i] === 's' ? 's' : (i === round && phase !== 'idle' && phase !== 'done' ? 'cur' : '');
+      h += '<i class="' + c + '"></i>';
+    }
+    $('dots').innerHTML = h;
+    $('sbLabel').textContent = 'Zarba ' + Math.min(round + 1, TOTAL) + '/' + TOTAL;
+  }
+  function renderBoxes() {
+    var asking = phase === 'asking', fmt = curFmt(), list = fieldsOf(fmt);
+    var single = list.length === 1;
+    $('boxW').hidden = fmt !== 'mixed';
+    $('boxS').hidden = !single;
+    $('ansFrac').hidden = single;
+    $('swapKey').hidden = single;
+    $('clearKey').style.gridColumn = single ? '1 / -1' : '';
+    $('commaKey').disabled = !(asking && fmt === 'dec');
+    var ids = { w: 'boxW', n: 'boxN', d: 'boxD', s: 'boxS' };
+    list.forEach(function (f) {
+      var el = $(ids[f]), v = inp[f];
+      var cur = asking && field === f;
+      el.className = 'box' + (f === 'w' ? ' whole' : '') + (cur ? ' on' : '') + (phase === 'feedback' || phase === 'shooting' ? (results[round] === 'g' ? ' ok' : results[round] === 's' ? ' bad' : '') : '');
+      el.innerHTML = '<span>' + (v || (cur ? '' : ' ')) + '</span>' + (cur ? '<i class="caret"></i>' : '');
+    });
+    var nxt = list[(list.indexOf(field) + 1) % list.length];
+    $('swapKey').textContent = { w: 'Butun qismga o‘tish', n: 'Suratga o‘tish', d: 'Maxrajga o‘tish' }[nxt];
+  }
+  function renderAll() {
+    $('intro').hidden = phase !== 'idle';
+    $('question').hidden = phase === 'idle';
+    $('feedback').hidden = phase !== 'feedback' && phase !== 'done';
+    var asking = phase === 'asking';
+    var ks = $('keys').querySelectorAll('.key');
+    for (var i = 0; i < ks.length; i++) ks[i].disabled = !asking;
+    $('submit').disabled = !asking;
+    $('nextBtn').hidden = phase !== 'feedback';
+    $('goalStat').textContent = goals;
+    $('levelStat').textContent = LEVELS[phase === 'idle' ? chosenLevel() : curLevel].label;
+    renderDots(); renderBoxes();
+  }
+  function flash(msg) {
+    var h = $('hint'); h.textContent = msg; h.classList.add('warn');
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(function () { h.textContent = hintText(); h.classList.remove('warn'); }, 2600);
+  }
+
+  /* ---------- Flow ---------- */
+  function showQuestion() {
+    var q = qs[round];
+    $('qChip').textContent = LEVELS[curLevel].ops + ' ta amal';
+    $('qName').textContent = QNAMES[q.fmt];
+    $('qCount').textContent = (round + 1) + ' / ' + TOTAL;
+    $('exprMain').innerHTML = q.html;
+    inp = { w: '', n: '', d: '', s: '' }; field = firstField(q.fmt);
+    clearTimeout(hintTimer);
+    var hh = $('hint'); hh.textContent = hintText(); hh.classList.remove('warn');
+    resetScene();
+    phase = 'asking';
+    renderAll();
+  }
+  function startGame() {
+    ac(); ambientStart();
+    curLevel = chosenLevel();
+    qs = buildQuestions(curLevel); results = []; round = 0; goals = 0; saves = 0;
+    $('modal').hidden = true;
+    $('scene').classList.add('racing');
+    SND.whistle();
+    showQuestion();
+  }
+  function toSettings() {
+    phase = 'idle'; round = 0; results = []; goals = 0; saves = 0;
+    $('modal').hidden = true;
+    ambientStop(); resetScene(); renderAll();
+  }
+  function press(k) {
+    if (phase !== 'asking') return;
+    if (k === 'swap') { var l = fieldsOf(curFmt()); field = l[(l.indexOf(field) + 1) % l.length]; }
+    else if (k === 'clear') { inp[field] = ''; }
+    else if (k === 'back') { inp[field] = inp[field].slice(0, -1); }
+    else if (k === ',') {
+      if (curFmt() !== 'dec' || field !== 's' || inp.s.indexOf(',') >= 0) { SND.warn(); return; }
+      inp.s = (inp.s || '0') + ',';
+    }
+    else {
+      var max = field === 'n' ? 4 : field === 's' ? (curFmt() === 'dec' ? 7 : 4) : 3;
+      if (inp[field].length < max) inp[field] = (inp[field] === '0' ? '' : inp[field]) + k;
+    }
+    SND.tick();
+    renderBoxes();
+  }
+  var wrongWhy = '';
+  function submit() {
+    if (phase !== 'asking') return;
+    var q = qs[round], fmt = q.fmt, ok = false;
+    wrongWhy = '';
+    if (fmt === 'mixed') {
+      if (!inp.w) { SND.warn(); flash('Avval butun qismni kiriting.'); field = 'w'; renderBoxes(); return; }
+      if (!inp.n || !inp.d) { SND.warn(); flash("Kasr qismining surat va maxrajini kiriting."); field = inp.n ? 'd' : 'n'; renderBoxes(); return; }
+      var w = parseInt(inp.w, 10), mn = parseInt(inp.n, 10), md = parseInt(inp.d, 10);
+      if (md === 0) wrongWhy = "Maxraj 0 bo'lishi mumkin emas.";
+      else if (mn >= md) wrongWhy = "Kasr qismi to'g'ri kasr bo'lishi kerak: surat maxrajdan kichik bo'ladi.";
+      else if (gcd(mn, md) !== 1) {
+        var mv = F(w * md + mn, md);
+        wrongWhy = (mv.n === q.ans.n && mv.d === q.ans.d) ? "Qiymati to'g'ri, lekin kasr qismi qisqarmagan." : 'Kasr qismi qisqarmagan.';
+      }
+      else ok = (w * q.ans.d + mn === q.ans.n && md === q.ans.d);
+    } else if (fmt === 'int') {
+      if (!inp.s) { SND.warn(); flash('Avval javobni kiriting.'); return; }
+      ok = (q.ans.d === 1 && parseInt(inp.s, 10) === q.ans.n);
+    } else if (fmt === 'dec') {
+      if (!inp.s || /,$/.test(inp.s)) { SND.warn(); flash("O'nli kasrni to'liq yozing, masalan 0,25. Verguldan keyin raqam bo'lsin."); return; }
+      var parts = inp.s.split(','), fl = parts[1] ? parts[1].length : 0;
+      var dv = F(parseInt(parts[0] + (parts[1] || ''), 10), Math.pow(10, fl));
+      ok = (dv.n === q.ans.n && dv.d === q.ans.d);
+    } else {
+      if (!inp.n) { SND.warn(); flash('Avval suratni kiriting.'); return; }
+      if (!inp.d) { SND.warn(); flash('Maxrajni kiriting.'); field = 'd'; renderBoxes(); return; }
+      var n = parseInt(inp.n, 10), d = parseInt(inp.d, 10);
+      if (d === 0) wrongWhy = "Maxraj 0 bo'lishi mumkin emas.";
+      else if (gcd(n, d) !== 1) {
+        var fv = F(n, d);
+        wrongWhy = (fv.n === q.ans.n && fv.d === q.ans.d) ? "Qiymati to'g'ri, lekin kasr qisqarmagan." : 'Kasr qisqarmagan.';
+      }
+      else ok = (n === q.ans.n && d === q.ans.d);
+    }
+    shoot(ok);
+  }
+
+  function shoot(ok) {
+    phase = 'shooting';
+    var tk = ++token;
+    results[round] = ok ? 'g' : 's';
+    renderAll();
+    $('submit').disabled = true;
+
+    // choose where the ball goes
+    var side = Math.random() < 0.5 ? -1 : 1;
+    var tx = 480 + side * (62 + Math.random() * 84) + (Math.random() < 0.18 ? -side * 70 : 0);
+    var ty = Math.random() < 0.55 ? 142 + Math.random() * 12 : 178 + Math.random() * 20;
+    tx = Math.max(366, Math.min(594, tx));
+    var sgn = tx < 480 ? -1 : 1, high = ty < 165;
+
+    SND.whistle();
+    SND.tension(1.1);
+    // run-up
+    run(900, function (p) {
+      var e = easeInOut(p), bob = Math.abs(Math.sin(p * Math.PI * 4)) * 5 * (1 - p);
+      setKicker(lerp(KICK0.x, KICK1.x, e), lerp(KICK0.y, KICK1.y, e), lerp(KICK0.s, KICK1.s, e), -bob);
+      setArms(-22 * Math.sin(p * Math.PI * 3), 22 * Math.sin(p * Math.PI * 3));
+      setKeeper(480 + Math.sin(p * 18) * 5, 178, 0);
+      if (p > 0.72) setLeg(-(p - 0.72) / 0.28 * 0.6);
+    }, function () {
+      // kick
+      SND.kick();
+      setLeg(1);
+      var endX = tx, endY = ty, endS = 0.6;
+      var krot, kx, kdy;
+      if (ok) {
+        // wrong-way dive: the ball goes in
+        krot = -sgn * (38 + Math.random() * 20); kx = 480 - sgn * (58 + Math.random() * 30); kdy = 186;
+      } else {
+        // save: put the glove exactly where the ball arrives
+        krot = sgn * (high ? 46 : 60);
+        var rr = krot * Math.PI / 180, hx = sgn * 27, hy = -44;
+        var rx = hx * Math.cos(rr) - hy * Math.sin(rr), ry = hx * Math.sin(rr) + hy * Math.cos(rr);
+        kx = tx - rx; kdy = ty - ry;
+      }
+      run(700, function (p) {
+        var e = easeOut(p), arc = Math.sin(p * Math.PI) * 26;
+        var x = lerp(BALL0.x, endX, e), y = lerp(BALL0.y, endY, e) - arc, s = lerp(1, endS, e);
+        setBall(x, y, s, lerp(292, 205, e));
+        var kp = Math.max(0, Math.min(1, (p - 0.18) / 0.62)), ke = easeOut(kp);
+        setKeeper(lerp(480, kx, ke), lerp(178, kdy, ke) - Math.sin(kp * Math.PI) * 8, krot * ke);
+        setLeg(1 - p);
+      }, function () {
+        if (ok) goalFx(tk, endX, endY, sgn); else saveFx(tk, endX, endY, sgn);
+      }, tk);
+    }, tk);
+  }
+
+  function goalFx(tk, x, y, sgn) {
+    goals++;
+    SND.net(); SND.roar(); wait(350, function () { SND.horn(); }, tk); wait(900, function () { SND.fanfare(); }, tk);
+    wait(1500, function () { SND.stomp(); }, tk);
+    setFace('sad'); banner('Gol!', 'goal'); confetti();
+    $('netBack').style.transformOrigin = '480px 168px'; $('netBack').style.transformBox = 'view-box';
+    run(1100, function (p) {
+      var bounce = Math.sin(p * Math.PI * 3) * (1 - p);
+      setBall(x + sgn * 4 * p, y + 18 * easeOut(p) + bounce * 4, lerp(0.6, 0.55, p), 205);
+      $('netBack').setAttribute('transform', 'translate(0 ' + (bounce * 3).toFixed(2) + ')');
+      var up = Math.abs(Math.sin(p * Math.PI * 3)) * 16 * (1 - p * 0.5);
+      setKicker(KICK1.x, KICK1.y, KICK1.s, -up);
+      setArms(150, -150);
+    }, function () { $('netBack').removeAttribute('transform'); }, tk);
+    wait(1500, function () { finishShot(true); }, tk);
+  }
+  function saveFx(tk, x, y, sgn) {
+    saves++;
+    SND.save(); wait(250, function () { SND.stomp(); }, tk);
+    setFace('happy'); banner('Qaytardi!', 'save');
+    run(900, function (p) {
+      var e = easeOut(p);
+      setBall(x + sgn * 110 * e, y + 120 * e - Math.sin(p * Math.PI) * 40, lerp(0.6, 0.8, e), lerp(205, 300, e));
+      setKicker(KICK1.x, KICK1.y, KICK1.s, 0);
+      setArms(40, -40);
+    }, null, tk);
+    wait(1300, function () { finishShot(false); }, tk);
+  }
+
+  function finishShot(ok) {
+    var q = qs[round];
+    phase = 'feedback';
+    $('feedback').className = 'feedback ' + (ok ? 'ok' : 'no');
+    var right = q.fmt === 'mixed' ? mixedHTML(q.ans) : q.fmt === 'dec' ? decText(q.ans) : valHTML(q.ans);
+    $('fbTitle').innerHTML = ok ? "Gol! Javobingiz to‘g‘ri." : "Darvozabon qaytardi. To‘g‘ri javob: " + right + (wrongWhy ? ". " + wrongWhy : "");
+    var given = q.fmt === 'mixed' ? (inp.w + ' ' + inp.n + '/' + inp.d) : (q.fmt === 'int' || q.fmt === 'dec') ? inp.s : (inp.n + '/' + inp.d);
+    $('fbAnswers').textContent = 'Sizning javobingiz: ' + given;
+    $('sol').innerHTML = solutionHTML(q);
+    var nb = $('nextBtn'); nb.textContent = round >= TOTAL - 1 ? "Natijani ko‘rish" : 'Keyingi zarba';
+    nb.disabled = true; clearTimeout(nextTimer);
+    nextTimer = setTimeout(function () { nb.disabled = false; }, 600);
+    renderAll();
+  }
+  function next() {
+    if (phase !== 'feedback' || $('nextBtn').disabled) return;
+    if (round >= TOTAL - 1) { endGame(); return; }
+    round++; showQuestion();
+  }
+  function endGame() {
+    phase = 'done';
+    ambientStop();
+    var t, s;
+    if (goals === TOTAL) { t = "Ajoyib! Barcha zarbalar gol"; s = "Kasrlar ustida amallarni xatosiz bajardingiz."; }
+    else if (goals >= 3) { t = 'Yaxshi natija'; s = "Ko‘pchilik zarbalar to‘g‘ri bo‘ldi. Xato qilingan misollarning yechimini ko‘rib chiqing."; }
+    else { t = 'Yana urinib ko‘ring'; s = "Yechimlarni ko‘rib chiqib, qayta mashq qiling. Osonroq darajadan boshlash mumkin."; }
+    $('mTitle').textContent = t; $('mText').textContent = s;
+    $('mGoals').textContent = goals + ' / ' + TOTAL; $('mSaves').textContent = saves;
+    if (goals >= 3) SND.win(); else SND.lose();
+    $('modal').hidden = false;
+    renderAll();
+    $('again').focus();
+  }
+
+  /* ---------- Events ---------- */
+  $('pad').addEventListener('mousedown', function (e) { if (e.target.closest('.key')) e.preventDefault(); });
+  $('keys').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-k]');
+    if (b && !b.disabled) press(b.getAttribute('data-k'));
+  });
+  $('qcard').addEventListener('click', function (e) {
+    var b = e.target.closest('.box');
+    if (b && phase === 'asking') { field = b.getAttribute('data-f'); renderBoxes(); }
+  });
+  $('submit').addEventListener('click', submit);
+  $('nextBtn').addEventListener('click', next);
+  $('startBtn').addEventListener('click', startGame);
+  $('again').addEventListener('click', startGame);
+  $('toSettings').addEventListener('click', toSettings);
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="level"]'), function (r) {
+    r.addEventListener('change', renderAll);
+  });
+  $('soundBtn').addEventListener('click', function () {
+    soundOn = !soundOn;
+    this.setAttribute('aria-pressed', String(soundOn));
+    this.textContent = soundOn ? 'Ovoz: yoqilgan' : "Ovoz: o‘chiq";
+    if (!soundOn) ambientStop(); else if (phase !== 'idle' && phase !== 'done') { ac(); ambientStart(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!$('modal').hidden) return;
+    var c = e.code;
+    if (c === 'Enter' || c === 'NumpadEnter') {
+      if (phase === 'asking') { e.preventDefault(); if (!e.repeat) submit(); }
+      else if (phase === 'feedback') { e.preventDefault(); if (!e.repeat) next(); }
+      return;
+    }
+    if (phase !== 'asking') return;
+    if (e.key === ',' || e.key === '.' || c === 'NumpadDecimal') { e.preventDefault(); press(','); return; }
+    var m = /^(?:Digit|Numpad)([0-9])$/.exec(c);
+    if (m) { e.preventDefault(); press(m[1]); return; }
+    if (c === 'Backspace') { e.preventDefault(); press('back'); }
+    else if (c === 'Slash' || c === 'NumpadDivide' || c === 'ArrowUp' || c === 'ArrowDown') { e.preventDefault(); press('swap'); }
+    else if (c === 'Delete' || c === 'Escape') { press('clear'); }
+  });
+
+  var fsBtn = $('fsBtn');
+  if (!document.fullscreenEnabled || !document.documentElement.requestFullscreen) fsBtn.hidden = true;
+  fsBtn.addEventListener('click', function () {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else { var pr = document.documentElement.requestFullscreen(); if (pr && pr.catch) pr.catch(function () {}); }
+    } catch (e) {}
+  });
+  document.addEventListener('fullscreenchange', function () {
+    fsBtn.textContent = document.fullscreenElement ? "To‘liq ekrandan chiqish" : "To‘liq ekran";
+  });
+
+  resetScene();
+  renderAll();
+})();
+</script>
+</body>
+</html>
